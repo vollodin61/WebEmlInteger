@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список сообщений</title>
+    <style>
+        #progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+        }
+        #progress {
+            width: 0;
+            height: 30px;
+            background-color: #4caf50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Список сообщений</h1>
+
+    <!-- Форма для ввода учетных данных почты -->
+    <form method="POST">
+        {% csrf_token %}
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" name="password" required>
+
+        <button type="submit">Получить сообщения</button>
+    </form>
+
+    <!-- Прогресс-бар для отображения процесса загрузки -->
+    <div id="progress-bar">
+        <div id="progress"></div>
+    </div>
+
+    <!-- Таблица для отображения списка сообщений -->
+    <table>
+        <thead>
+            <tr>
+                <th>Тема</th>
+                <th>Дата отправки</th>
+                <th>Дата получения</th>
+                <th>Описание</th>
+            </tr>
+        </thead>
+        <tbody id="messages-body">
+            <!-- Сообщения будут динамически загружаться через WebSocket -->
+        </tbody>
+    </table>
+
+    <!-- Подключаем JavaScript для работы с прогресс-баром и WebSocket -->
+    <script src="{% static 'js/progress.js' %}"></script>
+</body>
+</html>
