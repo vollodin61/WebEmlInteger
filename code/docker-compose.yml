@@ -1,0 +1,66 @@
+services:
+  web:
+    build:
+      context: .
+    command: bash -c "python manage.py migrate && gunicorn eml_getter.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000"
+    volumes:
+      - .:/code
+      - static_volume:/code/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:7.2.5
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/etc/redis/data
+
+  db:
+    image: postgres:16.3
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "export PGPASSWORD=$$POSTGRES_PASSWORD && pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+
+    volumes:
+      - pg_data:/var/lib/postgres/data
+
+  celery:
+    build:
+      context: .
+    command: celery -A eml_getter worker -l info
+    volumes:
+      - .:/code
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  flower:
+    build:
+      context: .
+    command: celery -A eml_getter flower --port=5555 --broker=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+
+volumes:
+  pg_data:
+  redis_data:
+  static_volume:

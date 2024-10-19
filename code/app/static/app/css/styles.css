@@ -1,0 +1,36 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+#progress-bar {
+    width: 100%;
+    background-color: #cfc7c7;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+#progress {
+    width: 0%;
+    height: 20px;
+    background-color: #4caf50;
+}
+
+#progress-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 0;
+    left: 0;
+    line-height: 20px;
+    font-weight: bold;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #2e88b1;
+    padding: 8px;
+}
