@@ -1,18 +1,31 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa; /* Светлый фон страницы */
+    margin: 0;
+    padding: 20px;
+    color: #343a40;
 }
 
+h1, h2 {
+    color: #343a40;
+    text-align: center; /* Добавлено для выравнивания заголовков по центру */
+}
+
+/* Прогресс-бар */
 #progress-bar {
     width: 100%;
-    background-color: #cfc7c7;
+    background-color: #e9ecef;
     margin-bottom: 20px;
     position: relative;
+    border-radius: 4px;
 }
 
 #progress {
     width: 0%;
     height: 20px;
-    background-color: #4caf50;
+    background-color: #17a2b8; /* Используем приятный оттенок голубого */
+    border-radius: 4px;
+    transition: width 0.3s ease;
 }
 
 #progress-text {
@@ -23,14 +36,91 @@ body {
     left: 0;
     line-height: 20px;
     font-weight: bold;
+    color: #fff;
 }
 
+/* Таблица */
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 th, td {
-    border: 1px solid #2e88b1;
-    padding: 8px;
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #6c757d; /* Цвет заголовка таблицы */
+    color: #fff;
+}
+
+tr:nth-child(even) {
+    background-color: #f1f3f5; /* Светлый фон для четных строк */
+}
+
+tr:hover {
+    background-color: #e9ecef; /* Подсветка строки при наведении */
+}
+
+/* Кнопки и формы */
+button, input[type="submit"] {
+    background-color: #17a2b8;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover, input[type="submit"]:hover {
+    background-color: #138496;
+}
+
+form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+form p {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+input[type="text"], input[type="email"], input[type="password"], select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+/* Фон для страницы входа */
+.login-page {
+    background-image: url("../images/background.png"); /* Используем относительный путь */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-attachment: fixed;
+    background-color: rgba(255, 255, 255, 0.8);
+    background-blend-mode: lighten;
+}
+
+.login-form-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 100px auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }

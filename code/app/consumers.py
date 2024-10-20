@@ -1,13 +1,21 @@
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
+import json
+
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 
-class ProgressConsumer(AsyncJsonWebsocketConsumer):
+class ProgressConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        await self.channel_layer.group_add('progress', self.channel_name)
+        self.group_name = 'progress'
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard('progress', self.channel_name)
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def progress_update(self, event):
-        await self.send_json(event['message'])
+        message = event['message']
+        await self.send(text_data=json.dumps(message))
+
+    async def new_message(self, event):
+        message = event['message']
+        await self.send(text_data=json.dumps({'new_message': message}))
