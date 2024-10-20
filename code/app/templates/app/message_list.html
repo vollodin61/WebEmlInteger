@@ -1,41 +1,41 @@
-<!DOCTYPE html>
+{% extends 'app/base.html' %}
 {% load static %}
 
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Список сообщений</title>
-    <link rel="stylesheet" href="{% static 'app/css/styles.css' %}">
-    <link rel="icon" href="{% static 'app/images/favicon.png' %}" type="image/x-icon">
-</head>
-<body>
-    <h1>Список сообщений</h1>
-    <div id="progress-bar">
-        <div id="progress"></div>
-        <span id="progress-text">Чтение сообщений...</span>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Тема</th>
-                <th>Дата отправки</th>
-                <th>Дата получения</th>
-                <th>Описание</th>
-            </tr>
-        </thead>
-        <tbody id="message-list">
-            {% for message in messages %}
-            <tr>
-                <td>{{ message.id }}</td>
-                <td>{{ message.subject }}</td>
-                <td>{{ message.send_date }}</td>
-                <td>{{ message.receive_date }}</td>
-                <td>{{ message.body|truncatechars:50 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <script src="{% static 'app/js/script.js' %}"></script>
-</body>
-</html>
+{% block title %}Список сообщений{% endblock %}
+
+{% block content %}
+<h1>Список сообщений</h1>
+<button id="refresh-button">Обновить список</button>
+<label><input type="checkbox" id="show-new-messages" {% if show_new %}checked{% endif %}> Показывать только новые сообщения</label>
+
+<div id="progress-bar">
+    <div id="progress"></div>
+    <span id="progress-text">Чтение сообщений...</span>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Тема</th>
+            <th>Дата отправки</th>
+            <th>Дата получения</th>
+            <th>Описание</th>
+        </tr>
+    </thead>
+    <tbody id="message-list">
+        {% for message in messages %}
+        <tr>
+            <td>{{ message.id }}</td>
+            <td>{{ message.subject }}</td>
+            <td>{{ message.send_date|date:"d.m.Y H:i" }}</td>
+            <td>{{ message.receive_date|date:"d.m.Y H:i" }}</td>
+            <td>{{ message.body|truncatechars:50 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Исправленная строка без лишних пробелов -->
+<script src="{% static 'app/js/script.js' %}"></script>
+{% endblock %}

@@ -4,15 +4,11 @@ var messageList = document.getElementById('message-list');
 
 var socket = new WebSocket('ws://' + window.location.host + '/ws/progress/');
 
-socket.onmessage = function(e) {
+socket.onmessage = function (e) {
     var data = JSON.parse(e.data);
     if (data.progress) {
         progressBar.style.width = data.progress + '%';
-        if (data.progress < 100) {
-            progressText.textContent = 'Чтение сообщений: ' + data.progress + '%';
-        } else {
-            progressText.textContent = 'Получение сообщений завершено';
-        }
+        progressText.textContent = data.status || ('Прогресс: ' + data.progress + '%');
     }
     if (data.new_message) {
         addMessageToTable(data.new_message);
@@ -44,3 +40,25 @@ function addMessageToTable(message) {
 
     messageList.appendChild(row);
 }
+
+// Обработчик для кнопки "Обновить список"
+document.getElementById('refresh-button').addEventListener('click', function () {
+    fetch('/refresh_messages/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                // Очищаем таблицу сообщений
+                messageList.innerHTML = '';
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Начало обновления...';
+            }
+        });
+});
+
+// Обработчик для чекбокса "Показывать только новые сообщения"
+document.getElementById('show-new-messages').addEventListener('change', function () {
+    var showNew = this.checked;
+    var url = new URL(window.location.href);
+    url.searchParams.set('show_new', showNew);
+    window.location.href = url.toString();
+});

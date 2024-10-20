@@ -1,23 +1,30 @@
-{% extends 'base.html' %}
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Вход в почту{% endblock %}
 
 {% block content %}
-  <h2>Введите учетные данные почты или выберите существующий аккаунт</h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <p>
-      {{ form.account.label_tag }} {{ form.account }}
-    </p>
-    <p>Или введите новые учетные данные:</p>
-    <p>
-      {{ form.provider.label_tag }} {{ form.provider }}
-    </p>
-    <p>
-      {{ form.email.label_tag }} {{ form.email }}
-    </p>
-    <p>
-      {{ form.password.label_tag }} {{ form.password }}
-    </p>
-    <button type="submit">Получить письма</button>
-  </form>
+<div class="login-form-container">
+    <h2>Введите учетные данные почты или выберите существующий аккаунт</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <p>
+            {{ form.account.label_tag }} {{ form.account }}
+        </p>
+        <p>Или введите новые учетные данные:</p>
+        <p>
+            {{ form.provider.label_tag }} {{ form.provider }}
+        </p>
+        <p>
+            {{ form.email.label_tag }} {{ form.email }}
+        </p>
+        <p>
+            {{ form.password.label_tag }} {{ form.password }}
+        </p>
+        <button type="submit">Получить письма</button>
+    </form>
+    <label><input type="checkbox" id="show-new-messages" {% if show_new %}checked{% endif %}> Показывать только новые
+        сообщения</label>
+</div>
 {% endblock %}

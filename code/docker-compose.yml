@@ -16,6 +16,7 @@ services:
         condition: service_started
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
+    restart: unless-stopped
 
   redis:
     image: redis:7.2.5
@@ -24,6 +25,7 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/etc/redis/data
+    restart: unless-stopped
 
   db:
     image: postgres:16.3
@@ -37,6 +39,7 @@ services:
       interval: 2s
       timeout: 1s
       retries: 5
+    restart: unless-stopped
 
     volumes:
       - pg_data:/var/lib/postgres/data
@@ -53,6 +56,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    restart: unless-stopped
 
   flower:
     build:
@@ -63,6 +67,7 @@ services:
       - "5555:5555"
     depends_on:
       - redis
+    restart: unless-stopped
 
 
 volumes:
