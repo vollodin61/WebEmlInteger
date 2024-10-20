@@ -2,40 +2,60 @@ import email
 import imaplib
 import time
 from datetime import datetime
-from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 
 from asgiref.sync import async_to_sync
-from bs4 import BeautifulSoup  # Для обработки HTML-содержимого
-from celery import shared_task
 from channels.layers import get_channel_layer
 from django.db.utils import IntegrityError
 from loguru import logger
 
-from .models import EmailAccount, EmailMessage
+from ..models import EmailMessage
+from .utils import decode_subject, get_email_body_content
 
 
-class EmailFetcher:
+class BaseEmailFetcher:
+    """
+    Родительский класс, отвечающий за подключение и отключение от почтового сервера.
+    """
+
     def __init__(self, account):
         self.account = account
         self.provider = account.provider
         self.email_address = account.email
         self.password = account.password
         self.mail = None
-        self.channel_layer = get_channel_layer()
-        self.total_emails = 0
-        self.is_searching = True  # Флаг для этапа поиска
 
     def connect(self):
-        self.mail = imaplib.IMAP4_SSL('imap.' + self.provider)
+        """
+        Подключение к почтовому серверу.
+        """
+        self.mail = imaplib.IMAP4_SSL(f'imap.{self.provider}')
         self.mail.login(self.email_address, self.password)
         self.mail.select('inbox')
 
     def disconnect(self):
+        """
+        Отключение от почтового сервера.
+        """
         if self.mail:
             self.mail.logout()
 
+
+class EmailFetcher(BaseEmailFetcher):
+    """
+    Дочерний класс, отвечающий за обработку входящих сообщений.
+    """
+
+    def __init__(self, account):
+        super().__init__(account)
+        self.channel_layer = get_channel_layer()
+        self.total_emails = 0
+        self.is_searching = True  # Флаг для этапа поиска
+
     def fetch_email_uids(self):
+        """
+        Получение UID писем, которые нужно обработать.
+        """
         # Получаем последний UID из базы данных
         last_uid = (EmailMessage.objects
                     .filter(account=self.account)
@@ -55,13 +75,16 @@ class EmailFetcher:
         return email_uids
 
     def process_email(self, uid):
+        """
+        Обработка отдельного письма по UID.
+        """
         result, message_data = self.mail.uid('fetch', uid, '(RFC822)')
         raw_email = message_data[0][1]
         email_message = email.message_from_bytes(raw_email)
 
         # Декодируем тему письма
         subject_header = email_message['Subject']
-        subject = str(make_header(decode_header(subject_header)))
+        subject = decode_subject(subject_header)
 
         # Парсим дату отправки
         send_date = email_message['Date']
@@ -77,7 +100,7 @@ class EmailFetcher:
             message_id = f"{uid.decode()}@{self.provider}"
 
         # Обрабатываем тело письма
-        body = self.get_email_body(email_message)
+        body = get_email_body_content(email_message)
 
         # Создаем объект EmailMessage
         try:
@@ -98,59 +121,10 @@ class EmailFetcher:
         except IntegrityError:
             logger.error(f"Сообщение с UID {uid} уже существует. Пропуск.")
 
-    def get_email_body(self, email_message):
-        body = ''
-        if email_message.is_multipart():
-            for part in email_message.walk():
-                content_type = part.get_content_type()
-                content_disposition = str(part.get('Content-Disposition'))
-                if 'attachment' not in content_disposition:
-                    charset = part.get_content_charset()
-                    payload = part.get_payload(decode=True)
-                    if payload:
-                        if charset:
-                            payload = payload.decode(charset, errors='replace')
-                        else:
-                            payload = payload.decode('utf-8', errors='replace')
-                        if content_type == 'text/plain':
-                            body += payload
-                        elif content_type == 'text/html':
-                            soup = BeautifulSoup(payload, 'html.parser')
-                            text = soup.get_text()
-                            body += text
-        else:
-            charset = email_message.get_content_charset()
-            payload = email_message.get_payload(decode=True)
-            if payload:
-                if charset:
-                    payload = payload.decode(charset, errors='replace')
-                else:
-                    payload = payload.decode('utf-8', errors='replace')
-                content_type = email_message.get_content_type()
-                if content_type == 'text/plain':
-                    body += payload
-                elif content_type == 'text/html':
-                    soup = BeautifulSoup(payload, 'html.parser')
-                    text = soup.get_text()
-                    body += text
-        return body
-
-    def update_progress(self, idx):
-        if self.is_searching:
-            message = f'Чтение сообщений {idx + 1}'
-        else:
-            message = f'Получение сообщений {idx + 1} из {self.total_emails}'
-
-        progress = int((idx + 1) / self.total_emails * 100) if self.total_emails > 0 else 0
-        async_to_sync(self.channel_layer.group_send)(
-            'progress',
-            {
-                'type': 'progress_update',
-                'message': {'progress': progress, 'status': message},
-            }
-        )
-
     def send_new_message(self, email_message_obj):
+        """
+        Отправка информации о новом сообщении через WebSocket.
+        """
         async_to_sync(self.channel_layer.group_send)(
             'progress',
             {
@@ -165,21 +139,60 @@ class EmailFetcher:
             }
         )
 
+    def update_progress(self, idx):
+        """
+        Обновление прогресса обработки писем.
+        """
+        if self.is_searching:
+            message = f'Чтение сообщений {idx + 1}'
+        else:
+            message = f'Получение сообщений {idx + 1} из {self.total_emails}'
+
+        progress = int((
+                                   idx + 1) / self.total_emails * 100) if self.total_emails > 0 else 100  # Устанавливаем 100%, если нет новых сообщений
+        async_to_sync(self.channel_layer.group_send)(
+            'progress',
+            {
+                'type': 'progress_update',
+                'message': {'progress': progress, 'status': message},
+            }
+        )
+
     def fetch_and_process_emails(self):
+        """
+        Основной метод для получения и обработки писем.
+        """
         try:
             self.connect()
             self.is_searching = True  # Этап поиска
-            # Если требуется реализовать поиск последнего сообщения на сервере, можно добавить логику здесь
 
             self.is_searching = False  # Этап загрузки новых сообщений
             email_uids = self.fetch_email_uids()
-            for idx, uid in enumerate(email_uids):
-                try:
-                    self.process_email(uid)
-                    self.update_progress(idx)
-                    time.sleep(0.1)
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке письма UID {uid}: {e}")
+            if self.total_emails == 0:
+                # Нет новых сообщений, отправляем финальное обновление прогресса
+                async_to_sync(self.channel_layer.group_send)(
+                    'progress',
+                    {
+                        'type': 'progress_update',
+                        'message': {'progress': 100, 'status': 'Все сообщения получены'},
+                    }
+                )
+            else:
+                for idx, uid in enumerate(email_uids):
+                    try:
+                        self.process_email(uid)
+                        self.update_progress(idx)
+                        time.sleep(0.1)
+                    except Exception as e:
+                        logger.error(f"Ошибка при обработке письма UID {uid}: {e}")
+                # После обработки всех сообщений, отправляем финальное обновление прогресса
+                async_to_sync(self.channel_layer.group_send)(
+                    'progress',
+                    {
+                        'type': 'progress_update',
+                        'message': {'progress': 100, 'status': 'Все сообщения получены'},
+                    }
+                )
             self.disconnect()
             logger.info('Завершилось успешно')
         except imaplib.IMAP4.abort as e:
@@ -188,25 +201,3 @@ class EmailFetcher:
         except Exception as e:
             logger.error(f"Ошибка при получении писем: {e}")
             raise e
-
-
-@shared_task
-def fetch_emails(account_id):
-    account = EmailAccount.objects.get(id=account_id)
-    max_retries = 3
-    attempt = 0
-
-    while attempt < max_retries:
-        try:
-            fetcher = EmailFetcher(account)
-            fetcher.fetch_and_process_emails()
-            break  # Успешно завершили
-        except imaplib.IMAP4.abort as e:
-            attempt += 1
-            logger.error(f"Попытка переподключения {attempt} из {max_retries}...")
-            time.sleep(5)
-            if attempt == max_retries:
-                logger.error("Превышено максимальное количество попыток переподключения.")
-        except Exception as e:
-            logger.error(f"Ошибка: {e}")
-            break
