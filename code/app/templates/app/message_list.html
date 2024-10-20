@@ -4,9 +4,16 @@
 {% block title %}Список сообщений{% endblock %}
 
 {% block content %}
+<div class="header">
+    <a href="{% url 'email_login' %}" class="btn btn-secondary">🔄 Сменить аккаунт</a>
+</div>
+
 <h1>Список сообщений</h1>
 <button id="refresh-button">Обновить список</button>
-<label><input type="checkbox" id="show-new-messages" {% if show_new %}checked{% endif %}> Показывать только новые сообщения</label>
+<label>
+    <input type="checkbox" id="show-new-messages" {% if show_new %}checked{% endif %}>
+    Показывать только новые сообщения
+</label>
 
 <div id="progress-bar">
     <div id="progress"></div>
@@ -36,6 +43,5 @@
     </tbody>
 </table>
 
-<!-- Исправленная строка без лишних пробелов -->
 <script src="{% static 'app/js/script.js' %}"></script>
 {% endblock %}

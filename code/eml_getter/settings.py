@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from environs import Env
 
 env = Env()
@@ -96,7 +97,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [
-    BASE_DIR / 'app' / 'static'/ 'app',
+    BASE_DIR / 'app' / 'static' / 'app',
 ]
 
 LANGUAGE_CODE = 'ru-ru'
@@ -119,22 +120,44 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'django-db'
 
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {  # Добавлен форматтер
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {  # Дополнительный простой форматтер (опционально)
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
-        'file': {
+        'rotating_file': {  # Новый обработчик RotatingFileHandler
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'app.log'),
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'app.log'),
+            'maxBytes': 2 * 1024 * 1024,  # 2 МБ
+            'backupCount': 5,  # Максимум 5 резервных копий
+            'formatter': 'verbose',  # Используем verbose форматтер
+        },
+        # Можно добавить другие обработчики, например, консоль
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['rotating_file', 'console'],  # Используем оба обработчика
             'level': 'DEBUG',
             'propagate': True,
         },
+        # Можно добавить другие логгеры по необходимости
     },
 }

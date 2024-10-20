@@ -1,6 +1,5 @@
 import email
 import imaplib
-import os
 import time
 from datetime import datetime
 from email.header import decode_header, make_header
@@ -14,27 +13,6 @@ from django.db.utils import IntegrityError
 from loguru import logger
 
 from .models import EmailAccount, EmailMessage
-
-# Настройка логирования
-# Удаляем все обработчики
-logger.remove()
-
-# Создаем директорию для логов, если ее нет
-log_dir = 'logs'
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-# Формируем имя файла
-log_filename = datetime.now().strftime('%Y%m%d%H%M%S') + '.log'
-
-# Настраиваем логирование
-logger.add(
-    os.path.join(log_dir, log_filename),
-    rotation='2 MB',  # Ротация при достижении 2 MB
-    retention=5,  # Хранить до 5 файлов
-    compression=None,  # Без сжатия
-    enqueue=True  # Для работы в многопоточном окружении
-)
 
 
 class EmailFetcher:
