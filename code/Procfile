@@ -1,0 +1,1 @@
+web: gunicorn eml_getter.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --pythonpath /code
