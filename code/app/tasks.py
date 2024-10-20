@@ -69,7 +69,8 @@ class EmailFetcher:
 
         # Создаем объект EmailMessage
         try:
-            EmailMessage.objects.create(
+            # Сохраняем созданный объект в переменную email_message_obj
+            email_message_obj = EmailMessage.objects.create(
                 account=self.account,
                 subject=subject,
                 send_date=send_date,
@@ -77,6 +78,22 @@ class EmailFetcher:
                 body=body,
                 message_id=message_id,
             )
+
+            # Отправляем новое сообщение через WebSocket
+            async_to_sync(self.channel_layer.group_send)(
+                'progress',
+                {
+                    'type': 'new_message',
+                    'message': {
+                        'id': email_message_obj.id,
+                        'subject': email_message_obj.subject,
+                        'send_date': email_message_obj.send_date.strftime('%d.%m.%Y %H:%M'),
+                        'receive_date': email_message_obj.receive_date.strftime('%d.%m.%Y %H:%M'),
+                        'body': email_message_obj.body[:50],
+                    },
+                }
+            )
+
         except IntegrityError:
             elg(f"Сообщение с ID {message_id} уже существует. Пропуск.")
 
