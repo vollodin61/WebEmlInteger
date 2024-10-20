@@ -1,8 +1,8 @@
 from django.urls import path
 
-from . import views
+from .views import EmailLoginView, MessageListView
 
 urlpatterns = [
-    path('', views.email_login, name='email_login'),
-    path('messages/', views.message_list, name='message_list'),
+    path('', EmailLoginView.as_view(), name='email_login'),
+    path('messages/', MessageListView.as_view(), name='message_list'),
 ]

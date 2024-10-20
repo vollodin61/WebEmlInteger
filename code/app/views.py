@@ -1,22 +1,23 @@
 from django.shortcuts import render, redirect
+from django.views import View
+from django.views.generic import ListView
 
 from .forms import EmailLoginForm
-from .models import EmailMessage, EmailAccount
+from .models import EmailAccount
+from .models import EmailMessage
 from .tasks import fetch_emails
 
 
-def message_list(request):
-    messages = EmailMessage.objects.all()
-    if not messages:
-        account = EmailAccount.objects.first()
-        if account:
-            fetch_emails.delay(account.id)
-    return render(request, 'app/message_list.html', {'messages': messages})
+class EmailLoginView(View):
+    template_name = 'app/email_login.html'
+    form_class = EmailLoginForm
 
+    def get(self, request):
+        form = self.form_class()
+        return render(request, self.template_name, {'form': form})
 
-def email_login(request):
-    if request.method == 'POST':
-        form = EmailLoginForm(request.POST)
+    def post(self, request):
+        form = self.form_class(request.POST)
         if form.is_valid():
             account = form.cleaned_data['account']
             if account:
@@ -34,8 +35,12 @@ def email_login(request):
                 account_id = account.id
 
             fetch_emails.delay(account_id)
-
             return redirect('message_list')
-    else:
-        form = EmailLoginForm()
-    return render(request, 'app/email_login.html', {'form': form})
+        return render(request, self.template_name, {'form': form})
+
+
+class MessageListView(ListView):
+    model = EmailMessage
+    template_name = 'app/message_list.html'
+    context_object_name = 'messages'
+    ordering = ['-send_date']

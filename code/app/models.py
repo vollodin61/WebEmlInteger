@@ -11,6 +11,7 @@ class EmailAccount(models.Model):
 
 
 class EmailMessage(models.Model):
+    message_id = models.CharField(max_length=255, unique=True)
     account = models.ForeignKey(EmailAccount, on_delete=models.CASCADE)
     subject = models.CharField(max_length=255)
     send_date = models.DateTimeField()
