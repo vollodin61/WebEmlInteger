@@ -5,6 +5,7 @@ channels-redis==4.1.0
 Django==4.2.16
 djangorestframework==3.14.0
 django-celery-results==2.5.1
+django-encrypted-model-fields==0.6.5
 environs==11.0.0
 flower==2.0.1
 loguru==0.7.2
