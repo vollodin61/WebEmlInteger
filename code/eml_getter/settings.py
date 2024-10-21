@@ -161,3 +161,6 @@ LOGGING = {
         # Можно добавить другие логгеры по необходимости
     },
 }
+
+DEFAULT_FROM_EMAIL = "from_test_email@localhost"
+ADMIN_EMAIL = "Po4tafor1@yandex.ru"

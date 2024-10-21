@@ -6,9 +6,13 @@ var socket = new WebSocket('ws://' + window.location.host + '/ws/progress/');
 
 socket.onmessage = function (e) {
     var data = JSON.parse(e.data);
-    if (data.progress) {
+    if (data.progress !== undefined) {
+        // Обновляем прогресс-бар только если передан параметр progress
         progressBar.style.width = data.progress + '%';
-        progressText.textContent = data.status || ('Прогресс: ' + data.progress + '%');
+    }
+    if (data.status) {
+        // Обновляем текст прогресса, если передан параметр status
+        progressText.textContent = data.status;
     }
     if (data.new_message) {
         addMessageToTable(data.new_message);

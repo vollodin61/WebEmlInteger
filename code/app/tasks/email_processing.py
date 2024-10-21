@@ -9,8 +9,8 @@ from channels.layers import get_channel_layer
 from django.db.utils import IntegrityError
 from loguru import logger
 
-from ..models import EmailMessage
 from .utils import decode_subject, get_email_body_content
+from ..models import EmailMessage
 
 
 class BaseEmailFetcher:
@@ -50,7 +50,8 @@ class EmailFetcher(BaseEmailFetcher):
         super().__init__(account)
         self.channel_layer = get_channel_layer()
         self.total_emails = 0
-        self.is_searching = True  # Флаг для этапа поиска
+        self.processed_emails = 0
+        self.read_emails = 0
 
     def fetch_email_uids(self):
         """
@@ -139,17 +140,32 @@ class EmailFetcher(BaseEmailFetcher):
             }
         )
 
-    def update_progress(self, idx):
+    def update_progress_reading(self):
         """
-        Обновление прогресса обработки писем.
+        Обновление прогресса чтения сообщений.
         """
-        if self.is_searching:
-            message = f'Чтение сообщений {idx + 1}'
-        else:
-            message = f'Получение сообщений {idx + 1} из {self.total_emails}'
+        self.read_emails += 1
+        message = f'Чтение сообщений {self.read_emails}'
 
-        progress = int((
-                                   idx + 1) / self.total_emails * 100) if self.total_emails > 0 else 100  # Устанавливаем 100%, если нет новых сообщений
+        # Отправляем только текстовое сообщение без изменения прогресса
+        async_to_sync(self.channel_layer.group_send)(
+            'progress',
+            {
+                'type': 'progress_update',
+                'message': {'status': message},
+            }
+        )
+
+    def update_progress_receiving(self):
+        """
+        Обновление прогресса получения сообщений.
+        """
+        self.processed_emails += 1
+        remaining = self.total_emails - self.processed_emails
+        message = f'Получение сообщений {remaining}'
+        progress = int(
+            (self.processed_emails / self.total_emails) * 100) if self.total_emails > 0 else 100  # 0-100% для получения
+
         async_to_sync(self.channel_layer.group_send)(
             'progress',
             {
@@ -164,12 +180,12 @@ class EmailFetcher(BaseEmailFetcher):
         """
         try:
             self.connect()
-            self.is_searching = True  # Этап поиска
 
-            self.is_searching = False  # Этап загрузки новых сообщений
+            # Этап чтения сообщений
             email_uids = self.fetch_email_uids()
+
+            # Если нет новых сообщений
             if self.total_emails == 0:
-                # Нет новых сообщений, отправляем финальное обновление прогресса
                 async_to_sync(self.channel_layer.group_send)(
                     'progress',
                     {
@@ -178,14 +194,21 @@ class EmailFetcher(BaseEmailFetcher):
                     }
                 )
             else:
-                for idx, uid in enumerate(email_uids):
+                # Этап чтения сообщений
+                for uid in email_uids:
+                    self.update_progress_reading()
+                    time.sleep(0.05)  # Симуляция времени чтения
+
+                # Этап получения сообщений
+                for uid in email_uids:
                     try:
                         self.process_email(uid)
-                        self.update_progress(idx)
-                        time.sleep(0.1)
+                        self.update_progress_receiving()
+                        time.sleep(0.1)  # Симуляция времени получения
                     except Exception as e:
                         logger.error(f"Ошибка при обработке письма UID {uid}: {e}")
-                # После обработки всех сообщений, отправляем финальное обновление прогресса
+
+                # Финальное обновление прогресса
                 async_to_sync(self.channel_layer.group_send)(
                     'progress',
                     {
@@ -193,6 +216,7 @@ class EmailFetcher(BaseEmailFetcher):
                         'message': {'progress': 100, 'status': 'Все сообщения получены'},
                     }
                 )
+
             self.disconnect()
             logger.info('Завершилось успешно')
         except imaplib.IMAP4.abort as e:

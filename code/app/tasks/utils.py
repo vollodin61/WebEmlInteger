@@ -1,23 +1,8 @@
 from email.header import decode_header, make_header
-
 from bs4 import BeautifulSoup
 from loguru import logger
-
-
-def handle_exception(exception):
-    """
-    Централизованная обработка исключений.
-
-    Args:
-        exception (Exception): Возникшее исключение.
-    """
-    # Логируем исключение с его трассировкой
-    logger.exception(f"Произошла ошибка: {exception}")
-
-    # Дополнительные действия можно добавить здесь
-    # Например, отправка уведомлений, рестарт задачи и т.д.
-    # Пример:
-    # send_error_notification(exception)
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 def decode_subject(subject_header):
@@ -78,3 +63,22 @@ def get_email_body_content(email_message):
                 text = soup.get_text()
                 body += text
     return body
+
+
+def handle_exception(exception):
+    """
+    Централизованная обработка исключений.
+    """
+    # Логируем исключение с его трассировкой
+    logger.exception(f"Произошла ошибка: {exception}")
+
+    # Пример отправки уведомления по электронной почте
+    subject = "Ошибка в приложении EML Getter"
+    message = f"Произошла ошибка:\n\n{exception}"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [settings.ADMIN_EMAIL]
+
+    try:
+        send_mail(subject, message, from_email, recipient_list)
+    except Exception as email_exception:
+        logger.error(f"Не удалось отправить уведомление об ошибке: {email_exception}")
