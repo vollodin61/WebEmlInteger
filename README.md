@@ -33,7 +33,7 @@
 
     ```bash
     git clone https://github.com/username/eml-getter.git
-    cd eml-getter
+    cd eml-getter/code
     ```
 
 2. **Создание файла переменных окружения**
