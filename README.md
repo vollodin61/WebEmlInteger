@@ -55,7 +55,7 @@
 3. **Запуск Docker контейнеров**
 
     ```bash
-    docker-compose up --build -d
+    docker compose up --build -d
     ```
 
     Эта команда создаст и запустит необходимые контейнеры: веб-сервер Django, Redis и Celery воркеры.
@@ -66,7 +66,7 @@
    
     Создание суперпользователя для админ-панели
     ```bash
-    docker-compose exec web python manage.py createsuperuser
+    docker compose run web python manage.py createsuperuser
     ```
 
 5. **Доступ к приложению**
